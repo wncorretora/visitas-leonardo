@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório de Visitas - Leonardo de Rossi v2.4.3</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EE; --surface: #FFFFFF; --surface2: #F0EDE6;
+    --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.15);
+    --text: #1A1916; --text-muted: #6B6860; --text-light: #9E9B94;
+    --accent: #1D5C3A; --accent-light: #E8F2EC; --accent-text: #0F3D26;
+    --blue: #1A4A7A; --blue-light: rgba(26, 74, 122, 0.1);
+    --radius: 10px; --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    
+    /* Cores de Status e Botões */
+    --status-venda: #27ae60; --status-negativo: #c0392b;
+    --status-contato: #f1c40f; --status-proposta: #2980b9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; display: flex; flex-direction: column; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 50; }
+  .logo-text { font-size: 15px; font-weight: 600; }
+  .preposto-pill { background: var(--accent-light); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: var(--accent-text); font-weight: 500; }
+
+  .tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; }
+  .tab { padding: 14px 18px; font-size: 14px; color: var(--text-muted); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: 0.2s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+  .content { max-width: 1300px; margin: 0 auto; padding: 25px 20px; flex: 1; width: 100%; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .card { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+  .fg-title { font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 12px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  
+  .filter-bar { background: var(--surface2); padding: 15px; border-radius: var(--radius); margin-bottom: 20px; display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap; border: 1px solid var(--border); }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .filter-bar input { padding: 8px; font-size: 13px; border: 1px solid var(--border-strong); border-radius: 6px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .row-addr { display: grid; grid-template-columns: 120px 1fr 80px; gap: 14px; }
+  @media (max-width: 768px) { .row2, .row3, .row-addr, .filter-bar { grid-template-columns: 1fr; } }
+
+  .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .form-group label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+  input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 14px; background: white; outline: none; }
+
+  .agendamento-box { background: var(--blue-light); padding: 20px; border-radius: var(--radius); margin-top: 20px; border: 1px solid rgba(26, 74, 122, 0.25); }
+
+  .produto-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+  .produto-chip { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: white; cursor: pointer; font-size: 13px; min-width: 140px; }
+  .produto-chip.selected { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .chip-check { width: 16px; height: 16px; border: 1px solid var(--border-strong); border-radius: 4px; position: relative; }
+  .selected .chip-check { background: var(--accent); border-color: var(--accent); }
+  .selected .chip-check::after { content: '✓'; color: white; font-size: 10px; position: absolute; left: 3px; top: 0px; }
+
+  .btn { padding: 10px 18px; border-radius: var(--radius); border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 12px; }
+  .btn-primary { background: var(--accent); color: white; width: 100%; padding: 14px; font-size: 14px; }
+  .btn-pdf { background: var(--blue); color: white; }
+  .btn-csv { background: #27ae60; color: white; }
+  .btn-sheets { background: var(--status-contato); color: #000; } /* Botão Amarelo */
+
+  .table-wrap { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow-x: auto; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1100px; }
+  th { text-align: left; padding: 12px; background: var(--surface2); color: var(--text-light); font-size: 10px; text-transform: uppercase; }
+  td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .status-badge { font-size: 10px; padding: 5px 12px; border-radius: 12px; font-weight: 700; text-transform: uppercase; color: white; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
+  .cal-dow { text-align: center; padding: 12px; font-size: 11px; font-weight: 600; color: var(--text-light); background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .cal-cell { min-height: 90px; padding: 6px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: white; }
+  .cal-event { font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-bottom: 3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .ev-nova { background: #e8f5e9; color: #2e7d32; border-left: 3px solid #2e7d32; }
+  .ev-reag { background: #e3f2fd; color: #1565c0; border-left: 3px solid #1565c0; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 500px; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1A1916; color: white; padding: 10px 24px; border-radius: 30px; font-size: 13px; opacity: 0; transition: 0.3s; z-index: 2000; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="logo-text">Relatório de Visitas</span>
+  <div class="preposto-pill">Leonardo de Rossi</div>
+</header>
+
+<div class="tabs-wrap">
+  <button class="tab active" id="tab-form" onclick="switchTab('form',this)">Nova Visita</button>
+  <button class="tab" id="tab-painel" onclick="switchTab('painel',this)">Painel de Controle</button>
+  <button class="tab" id="tab-agenda" onclick="switchTab('agenda',this)">Agenda</button>
+</div>
+
+<div class="content">
+  <!-- FORMULÁRIO -->
+  <div id="section-form" class="section active">
+    <div class="card">
+      <h2 id="form-title" style="font-family:'DM Serif Display'; color:var(--accent); margin-bottom:20px">Registrar Visita</h2>
+      
+      <div class="fg-title">Dados do Cliente</div>
+      <div class="row2">
+        <div class="form-group"><label>Data da Visita</label><input type="date" id="f-data"></div>
+        <div class="form-group"><label>Nome do Cliente / Responsável</label><input type="text" id="f-cliente" placeholder="Dr. João Silva"></div>
+      </div>
+      
+      <div class="fg-title">Localização</div>
+      <div class="row-addr">
+        <div class="form-group"><label>CEP</label><input type="text" id="f-cep" placeholder="00000-000" onblur="buscarCEP()"></div>
+        <div class="form-group"><label>Logradouro</label><input type="text" id="f-logradouro"></div>
+        <div class="form-group"><label>Número</label><input type="text" id="f-numero"></div>
+      </div>
+      <div class="row3">
+        <div class="form-group"><label>Bairro</label><input type="text" id="f-bairro"></div>
+        <div class="form-group"><label>Cidade</label><input type="text" id="f-cidade"></div>
+        <div class="form-group"><label>Estado (UF)</label><input type="text" id="f-estado"></div>
+      </div>
+
+      <div class="row2" style="margin-top:10px">
+        <div class="form-group"><label>Clínica / Empresa</label><input type="text" id="f-clinica"></div>
+        <div class="form-group">
+          <label>Profissão</label>
+          <select id="f-profissao" onchange="toggleCamposProfissao()">
+            <option value="">Selecione...</option>
+            <option>Advogado</option>
+            <option>Biomédico</option>
+            <option>Empresário</option>
+            <option>Dentista</option>
+            <option>Farmacêutico</option>
+            <option>Médico</option>
+            <option>Outros</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="form-group" id="group-especialidade" style="display:none">
+          <label>Especialidade</label><input type="text" id="f-especialidade" placeholder="Ex: Cardiologista">
+        </div>
+        <div class="form-group" id="group-outra-profissao" style="display:none">
+          <label>Qual profissão?</label><input type="text" id="f-outra-profissao" placeholder="Digite a profissão">
+        </div>
+      </div>
+
+      <div class="fg-title">Produtos Apresentados</div>
+      <div id="produto-grid" class="produto-grid"></div>
+      <div class="form-group" id="group-produto-outro" style="margin-top:12px; display:none;">
+        <label>Especifique o produto</label><input type="text" id="f-produto-outro">
+      </div>
+
+      <div class="fg-title">Resultado</div>
+      <div class="row2">
+        <div class="form-group">
+          <label>Ação Realizada</label>
+          <select id="f-resultado">
+            <option value="">Selecione...</option>
+            <option>Agendado novo horário</option>
+            <option>Apresentado Proposta Pessoalmente</option>
+            <option>Deixado material e cartão</option>
+            <option>Entrado em contato via Ligação</option>
+            <option>Entrado em contato via WhatsApp</option>
+            <option>Não atendido</option>
+            <option>Não tem interesse</option>
+            <option>Proposta enviada email</option>
+            <option>Proposta enviada whatsapp</option>
+            <option>Venda realizada</option>
+            <option>Visita inicial</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-valor" step="0.01"></div>
+      </div>
+
+      <!-- AGENDAR RETORNO -->
+      <div class="agendamento-box">
+        <div class="fg-title" style="margin-top:0; border-bottom-color: rgba(26, 74, 122, 0.2); color:var(--blue)">Agendar Retorno</div>
+        <div class="row2">
+          <div class="form-group"><label>Data do Retorno</label><input type="date" id="f-ag-data"></div>
+          <div class="form-group"><label>Horário do Retorno</label><input type="time" id="f-ag-hora"></div>
+        </div>
+      </div>
+
+      <div class="fg-title">Observações</div>
+      <textarea id="f-obs" rows="3"></textarea>
+      
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn btn-primary" id="btn-save" onclick="registrarVisita()">Salvar Registro</button>
+        <button class="btn" id="btn-cancel" style="display:none; background:var(--surface2)" onclick="cancelarEdicao()">Cancelar Edição</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL -->
+  <div id="section-painel" class="section">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-family:'DM Serif Display'; color:var(--accent)">Painel de Controle</h3>
+      <div style="display:flex; gap:8px; flex-wrap: wrap;">
+         <button class="btn btn-sheets" onclick="window.open('https://docs.google.com/spreadsheets/d/18vj6y6emJCWhh-1Fo3Lp_pZ1A7Hb1Er_yz6sIhRYOQQ/edit?usp=sharing', '_blank')">Acessar Planilha</button>
+         <button class="btn btn-csv" onclick="exportarCSV()">Exportar CSV</button>
+         <button class="btn btn-pdf" onclick="exportarPDF()">Exportar PDF</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-group"><label>Início</label><input type="date" id="filtro-inicio" onchange="renderTabela()"></div>
+      <div class="filter-group"><label>Fim</label><input type="date" id="filtro-fim" onchange="renderTabela()"></div>
+      <button class="btn" style="background:#fff; border:1px solid #ccc" onclick="limparFiltros()">Limpar</button>
+      <div style="margin-left:auto; font-size:12px; color:var(--text-light)" id="contagem-filtro"></div>
+    </div>
+    <div class="table-wrap" id="tabela-container"></div>
+  </div>
+
+  <!-- AGENDA -->
+  <div id="section-agenda" class="section">
+    <div class="cal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+      <h3 id="cal-label" style="font-family:'DM Serif Display'; color:var(--accent)"></h3>
+      <div style="display:flex; gap:8px">
+        <button class="btn" style="background:var(--surface2)" onclick="navegarMes(-1)">←</button>
+        <button class="btn" style="background:var(--surface2)" onclick="navegarMes(1)">→</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+</div>
+
+<footer style="text-align:center; padding:30px; font-size:12px; color:var(--text-light); background:var(--surface2)">
+  Desenvolvido por <strong>Niemz e Camargo LTDA</strong> | Versão 2.4.3
+</footer>
+
+<div class="modal-overlay" id="modal-resumo" onclick="fecharModal(event)">
+  <div class="modal">
+    <div id="modal-content"></div>
+    <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
+      <button class="btn" style="background:var(--blue); color:white" id="btn-ics">Exportar (.ics)</button>
+      <button class="btn" style="background:var(--surface2)" onclick="fecharModalDirect()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'visitas_leonardo_v4';
+const URL_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbxiWX8M3pIUYqcnXvchiiMhWOBUb28DH1gDIjikzGyCw45mgTwbzmHPVZvs4WZxiuqY/exec";
+const PRODS = ['RC Profissional','Innova PF','Innova PJ','Seguro de Vida','Consórcio','Previdência','Seguro Empresarial','Seguro Veicular', 'Outros'];
+let visitas = [];
+let editId = null;
+let dataAgenda = new Date();
+
+async function init() {
+  const local = localStorage.getItem(STORAGE_KEY);
+  visitas = local ? JSON.parse(local) : [];
+  renderChips();
+  document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+}
+
+async function buscarCEP() {
+  const cep = document.getElementById('f-cep').value.replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+    if (!data.erro) {
+      document.getElementById('f-logradouro').value = data.logradouro;
+      document.getElementById('f-bairro').value = data.bairro;
+      document.getElementById('f-cidade').value = data.localidade;
+      document.getElementById('f-estado').value = data.uf;
+      document.getElementById('f-numero').focus();
+    }
+  } catch (e) {}
+}
+
+function renderChips() {
+  const grid = document.getElementById('produto-grid');
+  grid.innerHTML = '';
+  PRODS.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'produto-chip';
+    d.innerHTML = `<div class="chip-check"></div>${p}`;
+    d.onclick = () => {
+      d.classList.toggle('selected');
+      if (p === 'Outros') document.getElementById('group-produto-outro').style.display = d.classList.contains('selected') ? 'block' : 'none';
+    };
+    d.dataset.name = p;
+    grid.appendChild(d);
+  });
+}
+
+function toggleCamposProfissao() {
+  const prof = document.getElementById('f-profissao').value;
+  document.getElementById('group-especialidade').style.display = (prof === 'Médico') ? 'block' : 'none';
+  document.getElementById('group-outra-profissao').style.display = (prof === 'Outros') ? 'block' : 'none';
+}
+
+function formatarMoeda(valor) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+}
+
+function getBadgeStyle(status) {
+  const s = (status || '').toLowerCase();
+  if (s === "venda realizada") return "background: var(--status-venda)";
+  if (s === "não tem interesse" || s === "não atendido") return "background: var(--status-negativo)";
+  if (s.includes("proposta enviada")) return "background: var(--status-azul)";
+  return "background: var(--status-contato); color: #000;";
+}
+
+async function registrarVisita() {
+  const cliente = document.getElementById('f-cliente').value.trim();
+  const data = document.getElementById('f-data').value;
+  if(!cliente || !data) { alert("Preencha o nome e a data."); return; }
+
+  const profBase = document.getElementById('f-profissao').value;
+  let profFinal = profBase;
+  if(profBase === 'Médico') profFinal = `Médico (${document.getElementById('f-especialidade').value})`;
+  if(profBase === 'Outros') profFinal = document.getElementById('f-outra-profissao').value || 'Outros';
+
+  let selecionados = [...document.querySelectorAll('.produto-chip.selected')].map(c => c.dataset.name);
+  if (selecionados.includes('Outros')) {
+    const outro = document.getElementById('f-produto-outro').value.trim();
+    selecionados = selecionados.map(p => p === 'Outros' ? (outro ? `Outros (${outro})` : 'Outros') : p);
+  }
+
+  const nova = {
+    id: editId || Date.now(),
+    cliente, data,
+    cep: document.getElementById('f-cep').value,
+    logradouro: document.getElementById('f-logradouro').value,
+    numero: document.getElementById('f-numero').value,
+    bairro: document.getElementById('f-bairro').value,
+    cidade: document.getElementById('f-cidade').value,
+    estado: document.getElementById('f-estado').value,
+    clinica: document.getElementById('f-clinica').value,
+    profissao: profFinal,
+    produtos: selecionados,
+    status: document.getElementById('f-resultado').value,
+    valor: parseFloat(document.getElementById('f-valor').value) || 0,
+    obs: document.getElementById('f-obs').value,
+    agData: document.getElementById('f-ag-data').value,
+    agHora: document.getElementById('f-ag-hora').value
+  };
+
+  if(editId) {
+    const idx = visitas.findIndex(v => v.id === editId);
+    visitas[idx] = nova;
+  } else {
+    visitas.unshift(nova);
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(visitas));
+  
+  fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nova) });
+
+  showToast(editId ? "Atualizado!" : "Salvo e Enviado!");
+  cancelarEdicao();
+}
+
+function prepararEdicao(id) {
+  const v = visitas.find(x => x.id === id);
+  if(!v) return;
+  editId = v.id;
+  document.getElementById('form-title').textContent = "Editando Registro";
+  document.getElementById('btn-cancel').style.display = 'inline-block';
+  
+  document.getElementById('f-cliente').value = v.cliente;
+  document.getElementById('f-data').value = v.data;
+  document.getElementById('f-cep').value = v.cep || '';
+  document.getElementById('f-logradouro').value = v.logradouro || '';
+  document.getElementById('f-numero').value = v.numero || '';
+  document.getElementById('f-bairro').value = v.bairro || '';
+  document.getElementById('f-cidade').value = v.cidade || '';
+  document.getElementById('f-estado').value = v.estado || '';
+  document.getElementById('f-clinica').value = v.clinica || '';
+  document.getElementById('f-valor').value = v.valor || '';
+  document.getElementById('f-obs').value = v.obs || '';
+  document.getElementById('f-ag-data').value = v.agData || '';
+  document.getElementById('f-ag-hora').value = v.agHora || '';
+  document.getElementById('f-resultado').value = v.status || '';
+
+  if (v.profissao.startsWith("Médico (")) {
+    document.getElementById('f-profissao').value = "Médico";
+    document.getElementById('f-especialidade').value = v.profissao.slice(8, -1);
+  } else if (!["Advogado","Biomédico","Empresário","Dentista","Farmacêutico"].includes(v.profissao)) {
+    document.getElementById('f-profissao').value = "Outros";
+    document.getElementById('f-outra-profissao').value = v.profissao;
+  } else {
+    document.getElementById('f-profissao').value = v.profissao;
+  }
+  toggleCamposProfissao();
+
+  renderChips();
+  v.produtos.forEach(p => {
+    let nome = p;
+    if(p.includes('Outros')) {
+       nome = 'Outros';
+       document.getElementById('group-produto-outro').style.display = 'block';
+       document.getElementById('f-produto-outro').value = p.replace('Outros (','').replace(')','');
+    }
+    const chip = [...document.querySelectorAll('.produto-chip')].find(c => c.dataset.name === nome);
+    if(chip) chip.classList.add('selected');
+  });
+
+  switchTab('form', document.getElementById('tab-form'));
+}
+
+function renderTabela() {
+  const inicio = document.getElementById('filtro-inicio').value;
+  const fim = document.getElementById('filtro-fim').value;
+  const filtradas = visitas.filter(v => (!inicio || v.data >= inicio) && (!fim || v.data <= fim));
+  const container = document.getElementById('tabela-container');
+  document.getElementById('contagem-filtro').textContent = `Total: ${filtradas.length}`;
+
+  if(filtradas.length === 0) { container.innerHTML = '<p style="padding:40px; text-align:center;">Sem registros.</p>'; return; }
+
+  let html = `<table><thead><tr><th>Data</th><th>Cliente</th><th>Profissão</th><th>Status</th><th>Produtos</th><th>Obs</th><th>Valor</th><th style="text-align:center">Ações</th></tr></thead><tbody>`;
+  filtradas.forEach(v => {
+    html += `<tr>
+      <td>${v.data.split('-').reverse().join('/')}</td>
+      <td><strong>${v.cliente}</strong><br><small>${v.clinica || '-'}</small></td>
+      <td>${v.profissao || '-'}</td>
+      <td><span class="status-badge" style="${getBadgeStyle(v.status)}">${v.status || '-'}</span></td>
+      <td style="font-size:11px">${v.produtos.join(', ')}</td>
+      <td style="max-width:180px; font-style:italic; color:#666">${v.obs || '-'}</td>
+      <td style="font-weight:600">${formatarMoeda(v.valor)}</td>
+      <td style="text-align:center; white-space:nowrap">
+        <button style="background:none; border:none; cursor:pointer" onclick="prepararEdicao(${v.id})">📝</button> 
+        <button style="background:none; border:none; cursor:pointer; color:red" onclick="excluir(${v.id})">✕</button>
+      </td>
+    </tr>`;
+  });
+  container.innerHTML = html + '</tbody></table>';
+}
+
+function cancelarEdicao() { editId = null; document.getElementById('form-title').textContent = "Registrar Visita"; document.getElementById('btn-cancel').style.display = 'none'; limparForm(); }
+function limparForm() { ['f-cliente','f-clinica','f-cep','f-logradouro','f-numero','f-bairro','f-cidade','f-estado','f-valor','f-obs','f-ag-data','f-ag-hora','f-profissao','f-especialidade','f-outra-profissao','f-produto-outro'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); document.querySelectorAll('.produto-chip').forEach(c => c.classList.remove('selected')); toggleCamposProfissao(); }
+function limparFiltros() { document.getElementById('filtro-inicio').value = ''; document.getElementById('filtro-fim').value = ''; renderTabela(); }
+function excluir(id) { if(confirm("Excluir?")) { visitas = visitas.filter(v => v.id !== id); localStorage.setItem(STORAGE_KEY, JSON.stringify(visitas)); renderTabela(); } }
+
+function exportarPDF() {
+  const win = window.open('', '_blank');
+  let rows = visitas.map(v => `<tr><td>${v.data}</td><td>${v.cliente}</td><td>${v.profissao}</td><td>${v.status}</td><td>${v.obs}</td><td>${formatarMoeda(v.valor)}</td></tr>`).join('');
+  win.document.write(`<html><head><style>@page { size: landscape; } table{width:100%; border-collapse:collapse; font-size:10px;} th,td{border:1px solid #ccc; padding:8px;}</style></head><body onload="window.print()"><h2>Relatório Leonardo de Rossi</h2><table><tr><th>Data</th><th>Cliente</th><th>Profissão</th><th>Status</th><th>Obs</th><th>Valor</th></tr>${rows}</table></body></html>`);
+  win.document.close();
+}
+
+function exportarCSV() {
+  const headers = "Data;Cliente;Clinica;Profissao;Status;Produtos;Valor;Obs\n";
+  const rows = visitas.map(v => `${v.data};${v.cliente};${v.clinica};${v.profissao};${v.status};${v.produtos.join('/')};${v.valor.toFixed(2)};${v.obs}`).join('\n');
+  const blob = new Blob(["\uFEFF" + headers + rows], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "relatorio.csv";
+  link.click();
+}
+
+function navegarMes(dir) { dataAgenda.setMonth(dataAgenda.getMonth() + dir); renderAgenda(); }
+function renderAgenda() {
+  const grid = document.getElementById('cal-grid');
+  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  grid.innerHTML = '';
+  document.getElementById('cal-label').textContent = `${meses[dataAgenda.getMonth()]} ${dataAgenda.getFullYear()}`;
+  ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(d => { const div = document.createElement('div'); div.className = 'cal-dow'; div.textContent = d; grid.appendChild(div); });
+  const primDia = new Date(dataAgenda.getFullYear(), dataAgenda.getMonth(), 1).getDay();
+  const diasNoMes = new Date(dataAgenda.getFullYear(), dataAgenda.getMonth() + 1, 0).getDate();
+  for(let i=0; i<primDia; i++) grid.appendChild(document.createElement('div'));
+  for(let d=1; d<=diasNoMes; d++) {
+    const diaStr = `${dataAgenda.getFullYear()}-${String(dataAgenda.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell = document.createElement('div'); cell.className = 'cal-cell';
+    cell.innerHTML = `<div>${d}</div>`;
+    visitas.filter(v => v.data === diaStr).forEach(v => {
+      const ev = document.createElement('div'); ev.className = 'cal-event ev-nova'; ev.textContent = v.cliente;
+      ev.onclick = () => abrirResumo(v); cell.appendChild(ev);
+    });
+    visitas.filter(v => v.agData === diaStr).forEach(v => {
+      const ev = document.createElement('div'); ev.className = 'cal-event ev-reag'; ev.textContent = `Retorno: ${v.cliente}`;
+      ev.onclick = () => abrirResumo(v, true); cell.appendChild(ev);
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function abrirResumo(v, isRetorno = false) {
+  const addr = `${v.logradouro||''}, ${v.numero||''}, ${v.bairro||''} - ${v.cidade||''}/${v.estado||''}`;
+  document.getElementById('modal-content').innerHTML = `<h3>${v.cliente}</h3><p><strong>Profissão:</strong> ${v.profissao}</p><p><strong>Status:</strong> ${v.status}</p><p><strong>Valor:</strong> ${formatarMoeda(v.valor)}</p><p><strong>Obs:</strong> ${v.obs || '-'}</p>${isRetorno ? `<p style='color:var(--blue)'><strong>Horário:</strong> ${v.agHora}</p>` : ''}`;
+  document.getElementById('modal-resumo').classList.add('open');
+}
+
+function fecharModalDirect() { document.getElementById('modal-resumo').classList.remove('open'); }
+function switchTab(tab, btn) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('section-' + tab).classList.add('active'); if(tab === 'painel') renderTabela(); if(tab === 'agenda') renderAgenda(); }
+function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+
+init();
+</script>
+</body>
+</html>
